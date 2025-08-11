@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Personal Code Reviewer - בודק קוד חכם</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-code"></i>
+                <h1>AI Personal Code Reviewer</h1>
+            </div>
+            <div class="user-info">
+                <span id="username">אורח</span>
+                <button id="loginBtn" class="btn btn-primary">
+                    <i class="fas fa-user"></i> התחבר
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="code-section">
+                <!-- Code Input Area -->
+                <div class="code-input">
+                    <div class="input-header">
+                        <h2><i class="fas fa-edit"></i> הכנס קוד לבדיקה</h2>
+                        <div class="input-controls">
+                            <select id="languageSelect" class="language-select">
+                                <option value="python">Python</option>
+                                <option value="javascript">JavaScript</option>
+                                <option value="java">Java</option>
+                                <option value="cpp">C++</option>
+                                <option value="csharp">C#</option>
+                            </select>
+                            <button id="uploadBtn" class="btn btn-secondary">
+                                <i class="fas fa-upload"></i> העלה קובץ
+                            </button>
+                            <input type="file" id="fileInput" style="display: none;" accept=".py,.js,.java,.cpp,.cs">
+                        </div>
+                    </div>
+                    <div class="editor-wrapper">
+                        <div class="line-numbers" id="lineNumbers"></div>
+                        <textarea id="codeEditor" class="code-editor" placeholder="הדבק את הקוד שלך כאן..."></textarea>
+                    </div>
+                    <div class="action-buttons">
+                        <button id="analyzeBtn" class="btn btn-success btn-large">
+                            <i class="fas fa-search"></i> נתח קוד
+                        </button>
+                        <button id="clearBtn" class="btn btn-secondary">
+                            <i class="fas fa-eraser"></i> נקה
+                        </button>
+                        <button id="exampleBtn" class="btn btn-info">
+                            <i class="fas fa-file-code"></i> דוגמה
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Area -->
+                <div class="results-section" id="resultsSection" style="display: none;">
+                    <!-- Summary Cards -->
+                    <div class="summary-cards">
+                        <div class="summary-card quality">
+                            <div class="card-icon">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3>ציון איכות</h3>
+                                <div class="score" id="qualityScore">-</div>
+                            </div>
+                        </div>
+                        <div class="summary-card issues">
+                            <div class="card-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3>בעיות שנמצאו</h3>
+                                <div class="score" id="issuesCount">-</div>
+                            </div>
+                        </div>
+                        <div class="summary-card recommendations">
+                            <div class="card-icon">
+                                <i class="fas fa-lightbulb"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3>המלצות</h3>
+                                <div class="score" id="recommendationsCount">-</div>
+                            </div>
+                        </div>
+                        <div class="summary-card complexity">
+                            <div class="card-icon">
+                                <i class="fas fa-project-diagram"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3>מורכבות</h3>
+                                <div class="score" id="complexityScore">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="issues">
+                            <i class="fas fa-bug"></i> בעיות
+                        </button>
+                        <button class="tab-btn" data-tab="recommendations">
+                            <i class="fas fa-magic"></i> המלצות
+                        </button>
+                        <button class="tab-btn" data-tab="patterns">
+                            <i class="fas fa-fingerprint"></i> דפוסים
+                        </button>
+                        <button class="tab-btn" data-tab="metrics">
+                            <i class="fas fa-chart-bar"></i> מטריקות
+                        </button>
+                        <button class="tab-btn" data-tab="style">
+                            <i class="fas fa-palette"></i> סגנון
+                        </button>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content">
+                        <!-- Issues Tab -->
+                        <div id="issuesTab" class="tab-pane active">
+                            <h3><i class="fas fa-bug"></i> בעיות שנמצאו</h3>
+                            <div id="issuesList" class="issues-list"></div>
+                        </div>
+
+                        <!-- Recommendations Tab -->
+                        <div id="recommendationsTab" class="tab-pane">
+                            <h3><i class="fas fa-magic"></i> המלצות לשיפור</h3>
+                            <div id="recommendationsList" class="recommendations-list"></div>
+                        </div>
+
+                        <!-- Patterns Tab -->
+                        <div id="patternsTab" class="tab-pane">
+                            <h3><i class="fas fa-fingerprint"></i> דפוסים שזוהו</h3>
+                            <div id="patternsList" class="patterns-list"></div>
+                        </div>
+
+                        <!-- Metrics Tab -->
+                        <div id="metricsTab" class="tab-pane">
+                            <h3><i class="fas fa-chart-bar"></i> מטריקות קוד</h3>
+                            <div id="metricsList" class="metrics-list"></div>
+                        </div>
+
+                        <!-- Style Tab -->
+                        <div id="styleTab" class="tab-pane">
+                            <h3><i class="fas fa-palette"></i> ניתוח סגנון</h3>
+                            <div id="styleAnalysis" class="style-analysis"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- User Stats -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-chart-line"></i> הסטטיסטיקות שלך</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">ניתוחים</span>
+                            <span class="stat-value" id="totalAnalyses">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">שורות קוד</span>
+                            <span class="stat-value" id="totalLines">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">איכות ממוצעת</span>
+                            <span class="stat-value" id="avgQuality">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">שפה מועדפת</span>
+                            <span class="stat-value" id="favLanguage">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent History -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-history"></i> היסטוריה אחרונה</h3>
+                    <div id="historyList" class="history-list">
+                        <p class="no-data">אין היסטוריה זמינה</p>
+                    </div>
+                </div>
+
+                <!-- Common Issues -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-exclamation-circle"></i> בעיות נפוצות</h3>
+                    <div id="commonIssues" class="common-issues">
+                        <p class="no-data">אין מספיק נתונים</p>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2025 AI Personal Code Reviewer | פותח עם ❤️ לקהילת המפתחים</p>
+        </footer>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>התחברות / הרשמה</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="usernameInput">שם משתמש:</label>
+                    <input type="text" id="usernameInput" required>
+                </div>
+                <div class="form-group">
+                    <label for="emailInput">אימייל (אופציונלי):</label>
+                    <input type="email" id="emailInput">
+                </div>
+                <button type="submit" class="btn btn-primary">התחבר</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>מנתח את הקוד שלך...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
